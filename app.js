@@ -2,19 +2,9 @@ const Question = require("./lib/Question");
 const Database = require("./lib/Database");
 const inquirer = require("inquirer");
 
-
-
-const myDB = new Database();
-
 console.log("\nWelcome to your CMS\n");
 
-
-async function start() {
-    let temp = await myDB.read().then((result) => {
-        console.log(result);
-    });
-}
-
+const employeeData = new Database().read("SELECT * FROM employee;");
 
 
 mainMenu();
@@ -49,39 +39,44 @@ async function mainMenu() {
                 })
                 break;
             case "Add Employee"://0
-                newEmployee();
+                questionTemplate(0, 0, 0);
                 break;
             case "Remove Employee"://1
-                remEmployee();
+            console.log(employeeData[0].first_name);
+                questionTemplateWConf(6, 1, 0);
                 break;
             case "Update Employee Role"://2
-                updRoleEmployee();
+                questionTemplate(1, 2, 1);
                 break;
             case "Update Employee Manager"://3
-                updManEmployee();
+                questionTemplate(2, 3, 2);
                 break;
             case "Add Department"://4
-                newDepartment();
+                questionTemplate(3, 4, 3);
                 break;
             case "Update Department"://5
-                updDep();
+                questionTemplate(4, 5, 4);
                 break;
             case "Remove Department"://6
-                remDep();
+                questionTemplateWConf(8, 6, 2);
                 break;
             case "Add Role"://7
-                addRole();
+                questionTemplate(5, 7, 5);
                 break;
             case "View Department Budget"://9
-                myDB.viewBudget();
+            new Database().read(`SELECT SUM(role.salary), department.name FROM role
+            JOIN employee ON role.id = employee.role_id
+            JOIN department ON role.department = department.id
+            WHERE department.name = "Operations";`).then((result) => {
+                console.log(result);
+            })
                 break;
             case "Remove Role"://8
-                remRole();
+                questionTemplateWConf(7, 8, 1);
                 break;
             case "Exit":
                 process.exit(2);
                 break;
-
         }
     });
 }
@@ -117,104 +112,61 @@ const questionArray = [[
     new Question("confirm", "conf", "Are you sure?")
 ]];
 
-async function newEmployee() {
-    console.log("\n\n Add new Employee \n\n");
-    const questionData = await inquirer.prompt(questionArray[0]).then((results) => {
-        new Database().create("first_name, last_name, role_id, manager_id",`${results.empFName}, ${results.empLName}, ${parseInt(results.empRole)}, ${parseInt(results.empMan)}`,"employee");
+const questionTitle = ["\n\n Add new Employee \n\n", "\n\n Update Employee Role \n\n", "\n\n Update Employee Manager \n\n",
+    "\n\n Add new Department \n\n", "\n\n Update Department\n\n", "\n\n Add new Role \n\n", "\n\n Remove an Employee\n\n",
+    "\n\n Remove a Role\n\n", "\n\n Remove a Department\n\n"];
+
+async function questionTemplate(qNum, qANum, qDBQ) {
+    console.log(questionTitle[qNum]);
+    await inquirer.prompt(questionArray[qANum]).then((results) => {
+        switch (qDBQ) {
+            case 0:
+                new Database().create("first_name, last_name, role_id, manager_id", `"${results.empFName}", "${results.empLName}", ${parseInt(results.empRole)}, ${parseInt(results.empMan)}`, "employee");
+                break;
+            case 1:
+                new Database().update("employee", parseInt(results.empId), { role_id: parseInt(results.roleId) });
+                break;
+            case 2:
+                new Database().update("employee", parseInt(results.empId), { manager_id: parseInt(results.manId) });
+                break;
+            case 3:
+                new Database().create("name", `"${results.depName}"`, "department");
+                break;
+            case 4:
+                new Database().update("department", parseInt(results.oldId), { name: results.depName });
+                break;
+            case 5:
+                new Database().create("title, salary, department", `"${results.roleName}", ${parseInt(results.roleSal)}, ${parseInt(results.roleDep)}`, "role");
+                break;
+            default:
+                console.log("There was an error");
+                break;
+        }
     });
     mainMenu();
 }
 
-async function remEmployee() {
-    console.log("\n\n Remove an Employee\n\n");
-    const questionData = await inquirer.prompt(questionArray[1]).then((results) => {
+async function questionTemplateWConf(qNum, qANum, qDBQ) {
+    console.log(questionTitle[qNum]);
+    await inquirer.prompt(questionArray[qANum]).then((results) => {
         if (results.conf) {
-            new Database().delete("employee", parseInt(results.remEMP));
+            switch (qDBQ) {
+                case 0:
+                    new Database().delete("employee", parseInt(results.remEMP));
+                    break;
+                case 1:
+                    new Database().delete("role", parseInt(results.remRole));
+                    break;
+                case 2:
+                    new Database().delete("department", parseInt(results.remDep));
+                    break;
+                default:
+                    console.log("There was an error");
+                    break;
+            }
         } else {
             console.log("Action cancelled");
         }
     });
     mainMenu();
 }
-
-async function updRoleEmployee() {
-    console.log("\n\n Update Employee Role \n\n");
-    const questionData = await inquirer.prompt(questionArray[2]).then((results) => {
-        new Database().update("employee",parseInt(results.empId),{role_id: parseInt(results.roleId)});
-    });
-    mainMenu();
-}
-
-async function updManEmployee() {
-    console.log("\n\n Update Employee Manager \n\n");
-    const questionData = await inquirer.prompt(questionArray[3]).then((results) => {
-        new Database().update("employee",parseInt(results.empId),{manager_id: parseInt(results.manId)});
-    });
-    mainMenu();
-}
-
-async function newDepartment() {
-    console.log("\n\n Add new Department \n\n");
-    const questionData = await inquirer.prompt(questionArray[4]).then((results) => {
-        new Database().create("name",`${results.depName}`,"department");
-    });
-    mainMenu();
-}
-
-async function updDep() {
-    console.log("\n\n Update Department\n\n");
-    const questionData = await inquirer.prompt(questionArray[5]).then((results) => {
-        new Database().update("department",parseInt(results.oldId),{name: results.depName});
-    });
-    mainMenu();
-}
-
-async function remDep() {
-    console.log("\n\n Remove a Department\n\n");
-    const questionData = await inquirer.prompt(questionArray[6]).then((results) => {
-        if (results.conf) {
-            new Database().delete("department", parseInt(results.remDep));
-        } else {
-            console.log("Action cancelled");
-        }
-    });
-    mainMenu();
-}
-
-async function addRole() {
-    console.log("\n\n Add new Role \n\n");
-    const questionData = await inquirer.prompt(questionArray[7]).then((results) => {
-        new Database().create("title, salary, department",`${results.roleName}, ${parseInt(results.roleSal)}, ${parseInt(results.roleDep)}`,"role");
-      });
-    mainMenu();
-}
-
-async function remRole() {
-    console.log("\n\n Remove a Role\n\n");
-    const questionData = await inquirer.prompt(questionArray[8]).then((results) => {
-        if (results.conf) {
-            new Database().delete("role", parseInt(results.remRole));
-        } else {
-            console.log("Action cancelled");
-        }
-    });
-    mainMenu();
-}
-
-function redirectFunc() {
-    mainMenu();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
