@@ -1,24 +1,55 @@
 const Question = require("./lib/Question");
 const Database = require("./lib/Database");
 const inquirer = require("inquirer");
-const cTable = require("console.table");
 console.log("\nWelcome to your CMS\n");
 
 let employeeData;
 let roleData;
 let departmentData;
 
-mainMenu();
+let nameList =[];
+let roleList = [];
+let depList = [];
+
+initialise();
+
+async function initialise() {
+     employeeData = await new Database().returnResult("SELECT * FROM employee;");
+     employeeData = JSON.stringify(employeeData);
+     employeeData = JSON.parse(employeeData);
+
+    employeeData.forEach(element => {
+       // console.log(`${element.first_name} ${element.last_name}`);
+       nameList.push(`${element.first_name} ${element.last_name}`);
+    });
+
+   roleData = await new Database().returnResult("SELECT * FROM role;");
+   roleData = JSON.stringify(roleData);
+   roleData = JSON.parse(roleData);
+
+   roleData.forEach(element => {
+    // console.log(`${element.first_name} ${element.last_name}`);
+    roleList.push(`${element.title}`);
+ });
+
+    departmentData = await new Database().returnResult("SELECT * FROM department;");
+    departmentData = JSON.stringify(departmentData);
+    departmentData = JSON.parse(departmentData);
+
+    departmentData.forEach(element => {
+        // console.log(`${element.first_name} ${element.last_name}`);
+        depList.push(`${element.name}`);
+     });
+    
+    mainMenu();
+}
+
+
+
+
 async function mainMenu() {
-    new Database().read("SELECT * FROM employee;").then((result) => {
-        employeeData = result;
-    });
-    new Database().read("SELECT * FROM department;").then((result) => {
-        departmentData = result;
-    });
-    new Database().read("SELECT * FROM role;").then((result) => {
-        roleData = result;
-    });
+    
+
     const questionData = await inquirer.prompt([
         new Question("list", "mainMenu", "What would you like to do?",
             ["View All Employees", "View All Employees By Department", "View All Employees By Manager", "Add Employee",
@@ -48,48 +79,44 @@ async function mainMenu() {
                 })
                 break;
             case "Add Employee"://0
-            console.log(employeeData);
-            console.log(roleData);
+          //  console.log(employeeData);
+            //console.log(roleData);
                 questionTemplate(0, 0, 0);
                 break;
             case "Remove Employee"://1
-            console.log(employeeData);
+          //  console.log(employeeData);
                 questionTemplateWConf(6, 1, 0);
                 break;
             case "Update Employee Role"://2
-            console.log(employeeData);
+           // console.log(employeeData);
+           // console.log(roleData);
                 questionTemplate(1, 2, 1);
                 break;
             case "Update Employee Manager"://3
-            console.log(employeeData);
+          //  console.log(employeeData);
                 questionTemplate(2, 3, 2);
                 break;
             case "Add Department"://4
-            console.log(departmentData);
+          //  console.log(departmentData);
                 questionTemplate(3, 4, 3);
                 break;
             case "Update Department"://5
-            console.log(departmentData);
+          //  console.log(departmentData);
                 questionTemplate(4, 5, 4);
                 break;
             case "Remove Department"://6
-            console.log(departmentData);
+          //  console.log(departmentData);
                 questionTemplateWConf(8, 6, 2);
                 break;
             case "Add Role"://7
-            console.log(roleData);
+          //  console.log(roleData);
                 questionTemplate(5, 7, 5);
                 break;
             case "View Department Budget"://9
-            new Database().read(`SELECT SUM(role.salary), department.name FROM role
-            JOIN employee ON role.id = employee.role_id
-            JOIN department ON role.department = department.id
-            WHERE department.name = "Operations";`).then((result) => {
-                console.log(result);
-            })
+            questionTemplate(9,9, 6);
                 break;
             case "Remove Role"://8
-            console.log(roleData);
+         //   console.log(roleData);
                 questionTemplateWConf(7, 8, 1);
                 break;
             case "Exit":
@@ -102,60 +129,71 @@ async function mainMenu() {
 const questionArray = [[
     new Question("input", "empFName", "First Name:"),
     new Question("input", "empLName", "Last Name:"),
-    new Question("input", "empRole", "Role id:"),
-    new Question("input", "empMan", "Manager id:"),
+    new Question("list", "empRole", "Role:", roleList),
+    new Question("list", "empMan", "Manager Name:", nameList),
 ], [
-    new Question("input", "remEMP", "Employee id:"),
+    new Question("list", "remEMP", "Employee Name:", nameList),
     new Question("confirm", "conf", "Are you sure?")
 ], [
-    new Question("input", "empId", "Employee id:"),
-    new Question("input", "roleId", "Role id:")
+    new Question("list", "empId", "Employee Name:", nameList),
+    new Question("list", "roleId", "Role:", roleList)
 ], [
-    new Question("input", "empId", "Employee id:"),
-    new Question("input", "manId", "Manager id:")
+    new Question("list", "empId", "Employee Name:", nameList),
+    new Question("list", "manId", "Manager Name:", nameList)
 ], [
     new Question("input", "depName", "Name:")
 ], [
-    new Question("input", "oldId", "Department id:"),
+    new Question("list", "oldId", "Department:", depList),
     new Question("input", "depName", "Department New Name:")
 ], [
-    new Question("input", "remDep", "Department id:"),
+    new Question("list", "remDep", "Department:", depList),
     new Question("confirm", "conf", "Are you sure?")
 ], [
     new Question("input", "roleName", "Title:"),
     new Question("input", "roleSal", "Salary:"),
-    new Question("input", "roleDep", "Department id:")
+    new Question("list", "roleDep", "Department:", depList)
 ], [
-    new Question("input", "remRole", "Role id:"),
+    new Question("list", "remRole", "Role:",roleList),
     new Question("confirm", "conf", "Are you sure?")
+], [
+    new Question("list", "roleDep", "Department:", depList)
 ]];
 
 const questionTitle = ["\n\n Add new Employee \n\n", "\n\n Update Employee Role \n\n", "\n\n Update Employee Manager \n\n",
     "\n\n Add new Department \n\n", "\n\n Update Department\n\n", "\n\n Add new Role \n\n", "\n\n Remove an Employee\n\n",
-    "\n\n Remove a Role\n\n", "\n\n Remove a Department\n\n"];
+    "\n\n Remove a Role\n\n", "\n\n Remove a Department\n\n","\n\n View Department Budget\n\n"];
 
 async function questionTemplate(qNum, qANum, qDBQ) {
     console.log(questionTitle[qNum]);
     await inquirer.prompt(questionArray[qANum]).then((results) => {
         switch (qDBQ) {
             case 0:
-                new Database().create("first_name, last_name, role_id, manager_id", `"${results.empFName}", "${results.empLName}", ${parseInt(results.empRole)}, ${parseInt(results.empMan)}`, "employee");
+                new Database().create("first_name, last_name, role_id, manager_id", `"${results.empFName}", "${results.empLName}", ${roleData[roleList.findIndex(tempVal => results.empRole === tempVal)].id}, ${employeeData[nameList.findIndex(tempVal => results.empMan === tempVal)].id}`, "employee");
                 break;
             case 1:
-                new Database().update("employee", parseInt(results.empId), { role_id: parseInt(results.roleId) });
+                new Database().update("employee", employeeData[nameList.findIndex(tempVal => results.empId === tempVal)].id, { role_id: roleData[roleList.findIndex(tempVal => results.roleId === tempVal)].id });
                 break;
             case 2:
-                new Database().update("employee", parseInt(results.empId), { manager_id: parseInt(results.manId) });
+                new Database().update("employee", employeeData[nameList.findIndex(tempVal => results.empId === tempVal)].id, { manager_id: employeeData[nameList.findIndex(tempVal => results.manId === tempVal)].id });
                 break;
             case 3:
                 new Database().create("name", `"${results.depName}"`, "department");
                 break;
             case 4:
-                new Database().update("department", parseInt(results.oldId), { name: results.depName });
+                new Database().update("department", departmentData[depList.findIndex(tempVal => results.oldId === tempVal)].id, { name: results.depName });
                 break;
             case 5:
-                new Database().create("title, salary, department", `"${results.roleName}", ${parseInt(results.roleSal)}, ${parseInt(results.roleDep)}`, "role");
+                new Database().create("title, salary, department", `"${results.roleName}", ${parseInt(results.roleSal)}, ${departmentData[depList.findIndex(tempVal => results.roleDep === tempVal)].id}`, "role");
                 break;
+            case 6:
+                console.log(depList.findIndex(tempVal => results.roleDep === tempVal));
+                new Database().read(`SELECT SUM(role.salary), department.name FROM role
+            JOIN employee ON role.id = employee.role_id
+            JOIN department ON role.department = department.id
+            WHERE department.name = "${departmentData[depList.findIndex(tempVal => results.roleDep === tempVal)].name}";`).then((result) => {
+                console.log(result);
+            })
+            break;
             default:
                 console.log("There was an error");
                 break;
@@ -170,13 +208,14 @@ async function questionTemplateWConf(qNum, qANum, qDBQ) {
         if (results.conf) {
             switch (qDBQ) {
                 case 0:
-                    new Database().delete("employee", parseInt(results.remEMP));
+                   // nameList.find(tempVal => results.remEMP === tempVal);
+                    new Database().delete("employee", employeeData[nameList.findIndex(tempVal => results.remEMP === tempVal)].id);
                     break;
                 case 1:
-                    new Database().delete("role", parseInt(results.remRole));
+                    new Database().delete("role", roleData[roleList.findIndex(tempVal => results.remRole === tempVal)].id);
                     break;
                 case 2:
-                    new Database().delete("department", parseInt(results.remDep));
+                    new Database().delete("department", departmentData[depList.findIndex(tempVal => results.remDep === tempVal)].id);
                     break;
                 default:
                     console.log("There was an error");
