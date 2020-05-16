@@ -1,15 +1,24 @@
 const Question = require("./lib/Question");
 const Database = require("./lib/Database");
 const inquirer = require("inquirer");
-
+const cTable = require("console.table");
 console.log("\nWelcome to your CMS\n");
 
-const employeeData = new Database().read("SELECT * FROM employee;");
-
+let employeeData;
+let roleData;
+let departmentData;
 
 mainMenu();
 async function mainMenu() {
-
+    new Database().read("SELECT * FROM employee;").then((result) => {
+        employeeData = result;
+    });
+    new Database().read("SELECT * FROM department;").then((result) => {
+        departmentData = result;
+    });
+    new Database().read("SELECT * FROM role;").then((result) => {
+        roleData = result;
+    });
     const questionData = await inquirer.prompt([
         new Question("list", "mainMenu", "What would you like to do?",
             ["View All Employees", "View All Employees By Department", "View All Employees By Manager", "Add Employee",
@@ -39,28 +48,36 @@ async function mainMenu() {
                 })
                 break;
             case "Add Employee"://0
+            console.log(employeeData);
+            console.log(roleData);
                 questionTemplate(0, 0, 0);
                 break;
             case "Remove Employee"://1
-            console.log(employeeData[0].first_name);
+            console.log(employeeData);
                 questionTemplateWConf(6, 1, 0);
                 break;
             case "Update Employee Role"://2
+            console.log(employeeData);
                 questionTemplate(1, 2, 1);
                 break;
             case "Update Employee Manager"://3
+            console.log(employeeData);
                 questionTemplate(2, 3, 2);
                 break;
             case "Add Department"://4
+            console.log(departmentData);
                 questionTemplate(3, 4, 3);
                 break;
             case "Update Department"://5
+            console.log(departmentData);
                 questionTemplate(4, 5, 4);
                 break;
             case "Remove Department"://6
+            console.log(departmentData);
                 questionTemplateWConf(8, 6, 2);
                 break;
             case "Add Role"://7
+            console.log(roleData);
                 questionTemplate(5, 7, 5);
                 break;
             case "View Department Budget"://9
@@ -72,6 +89,7 @@ async function mainMenu() {
             })
                 break;
             case "Remove Role"://8
+            console.log(roleData);
                 questionTemplateWConf(7, 8, 1);
                 break;
             case "Exit":
