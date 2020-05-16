@@ -54,7 +54,7 @@ async function mainMenu() {
         new Question("list", "mainMenu", "What would you like to do?",
             ["View All Employees", "View All Employees By Department", "View All Employees By Manager", "Add Employee",
                 "Remove Employee", "Update Employee Role", "Update Employee Manager",
-                "Add Department", "Update Department", "Remove Department", "Add Role", "Remove Role",
+                "View Departments", "Add Department", "Update Department", "Remove Department","View Roles", "Add Role", "Remove Role",
                 "View Department Budget", "Exit"])
     ]).then(({ mainMenu }) => {
         console.log(mainMenu);
@@ -62,7 +62,8 @@ async function mainMenu() {
             case "View All Employees":
                 new Database().read("SELECT * FROM employee;").then((result) => {
                     console.log(result);
-                })
+                    redirect();
+                });
                 break;
             case "View All Employees By Department":
                 new Database().read(`SELECT employee.first_name, employee.last_name, role.title, department.name
@@ -70,13 +71,15 @@ async function mainMenu() {
                 JOIN employee ON role.id = employee.role_id
                 JOIN department ON role.department = department.id ORDER BY department.id;`).then((result) => {
                     console.log(result);
-                })
+                    redirect();
+                });
                 break;
             case "View All Employees By Manager":
                 new Database().read(`SELECT e.first_name, e.last_name, CONCAT(m.first_name, ', ', m.last_name) AS Manager FROM employee e
                 JOIN employee m ON e.manager_id=m.id ORDER BY Manager;`).then((result) => {
                     console.log(result);
-                })
+                    redirect();
+                });
                 break;
             case "Add Employee"://0
           //  console.log(employeeData);
@@ -118,6 +121,18 @@ async function mainMenu() {
             case "Remove Role"://8
          //   console.log(roleData);
                 questionTemplateWConf(7, 8, 1);
+                break;
+                case "View Departments":
+                    new Database().read("SELECT * FROM department;").then((result) => {
+                        console.log(result);
+                        redirect();
+                    });
+                break;
+                case "View Roles":
+                    new Database().read("SELECT * FROM role;").then((result) => {
+                        console.log(result);
+                        redirect();
+                    });
                 break;
             case "Exit":
                 process.exit(2);
@@ -199,7 +214,7 @@ async function questionTemplate(qNum, qANum, qDBQ) {
                 break;
         }
     });
-    mainMenu();
+    initialise();
 }
 
 async function questionTemplateWConf(qNum, qANum, qDBQ) {
@@ -225,5 +240,12 @@ async function questionTemplateWConf(qNum, qANum, qDBQ) {
             console.log("Action cancelled");
         }
     });
-    mainMenu();
+    initialise();
+}
+
+function redirect() {
+    setTimeout(()=>{
+        mainMenu();
+    },1000);
+    
 }
