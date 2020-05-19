@@ -17,7 +17,15 @@ console.log("\nWelcome to your CMS\n");
 
 //Pulls required information from db and stores into variables so you don't have to do multiple requests.
 initialise();
+
 async function initialise() {
+    //empties the variables before reloading new information//THIS SEEMS TO BE PREVENTING THE NEW VARS BEING ADDED TO THE INPUTS???
+    employeeData = null;
+    roleData = null;//so this is loading the new data into the variable but not changing it in the array of choices?
+    departmentData = null;
+    nameList = [];
+    roleList = [];
+    depList = [];
     //stores employee table info
     employeeData = await new Database().returnResult("SELECT * FROM employee;");
     employeeData = JSON.stringify(employeeData);
@@ -43,10 +51,8 @@ async function initialise() {
         depList.push(`${element.name}`);
     });
     //once variables have been populated can then start the main function
-    mainMenu();
+     mainMenu();
 }
-
-
 
 
 async function mainMenu() {
@@ -61,7 +67,10 @@ async function mainMenu() {
         //depending upon menu selection will launch relevant function
         switch (mainMenu) {
             case "View All Employees": //a simple db query
-                new Database().read("SELECT * FROM employee;").then((result) => {
+                new Database().read(`SELECT e.first_name, e.last_name, role.title, role.salary, CONCAT(m.first_name, ', ', m.last_name) AS Manager
+                FROM employee e
+                INNER JOIN role ON role.id=e.role_id
+                JOIN employee m ON e.manager_id=m.id;`).then((result) => {
                     console.log(result); //returns the result
                     redirect(); //launches the mainMenu function again with a delay so the user isn't overwhelmed with the db answer and menu all at once
                 });
@@ -131,46 +140,52 @@ async function mainMenu() {
     });
 }
 
-const questionArray = [[//An array containing the questions to be asked from each menu option
-    new Question("input", "empFName", "First Name:"),
-    new Question("input", "empLName", "Last Name:"),
-    new Question("list", "empRole", "Role:", roleList),
-    new Question("list", "empMan", "Manager Name:", nameList),
-], [
-    new Question("list", "remEMP", "Employee Name:", nameList),
-    new Question("confirm", "conf", "Are you sure?")
-], [
-    new Question("list", "empId", "Employee Name:", nameList),
-    new Question("list", "roleId", "Role:", roleList)
-], [
-    new Question("list", "empId", "Employee Name:", nameList),
-    new Question("list", "manId", "Manager Name:", nameList)
-], [
-    new Question("input", "depName", "Name:")
-], [
-    new Question("list", "oldId", "Department:", depList),
-    new Question("input", "depName", "Department New Name:")
-], [
-    new Question("list", "remDep", "Department:", depList),
-    new Question("confirm", "conf", "Are you sure?")
-], [
-    new Question("input", "roleName", "Title:"),
-    new Question("input", "roleSal", "Salary:"),
-    new Question("list", "roleDep", "Department:", depList)
-], [
-    new Question("list", "remRole", "Role:", roleList),
-    new Question("confirm", "conf", "Are you sure?")
-], [
-    new Question("list", "roleDep", "Department:", depList)
-]];
 
 const questionTitle = ["\n\n Add new Employee \n\n", "\n\n Update Employee Role \n\n", "\n\n Update Employee Manager \n\n",
     "\n\n Add new Department \n\n", "\n\n Update Department\n\n", "\n\n Add new Role \n\n", "\n\n Remove an Employee\n\n",
     "\n\n Remove a Role\n\n", "\n\n Remove a Department\n\n", "\n\n View Department Budget\n\n"];//an array containing titles for each question segment
 
+function questionLoad (qANum) {//THis is contained within a function so it creates the Question objects each time its called, otherwise it won't load new db changes.
+    const questionArray = [[//An array containing the questions to be asked from each menu option
+        new Question("input", "empFName", "First Name:"),
+        new Question("input", "empLName", "Last Name:"),
+        new Question("list", "empRole", "Role:", roleList),
+        new Question("list", "empMan", "Manager Name:", nameList),
+    ], [
+        new Question("list", "remEMP", "Employee Name:", nameList),
+        new Question("confirm", "conf", "Are you sure?")
+    ], [
+        new Question("list", "empId", "Employee Name:", nameList),
+        new Question("list", "roleId", "Role:", roleList)
+    ], [
+        new Question("list", "empId", "Employee Name:", nameList),
+        new Question("list", "manId", "Manager Name:", nameList)
+    ], [
+        new Question("input", "depName", "Name:")
+    ], [
+        new Question("list", "oldId", "Department:", depList),
+        new Question("input", "depName", "Department New Name:")
+    ], [
+        new Question("list", "remDep", "Department:", depList),
+        new Question("confirm", "conf", "Are you sure?")
+    ], [
+        new Question("input", "roleName", "Title:"),
+        new Question("input", "roleSal", "Salary:"),
+        new Question("list", "roleDep", "Department:", depList)
+    ], [
+        new Question("list", "remRole", "Role:", roleList),
+        new Question("confirm", "conf", "Are you sure?")
+    ], [
+        new Question("list", "roleDep", "Department:", depList)
+    ]];
+    //let answers = questionArray[qANum];
+    return questionArray[qANum];
+}
+
+    
 async function questionTemplate(qNum, qANum, qDBQ) {//a templated function that uses databases to handle common actions
     console.log(questionTitle[qNum]);//loads the title of the action
-    await inquirer.prompt(questionArray[qANum]).then(async (results) => {//asks the relevant questions from the questions array
+    await inquirer.prompt(questionLoad(qANum)).then(async (results) => {//asks the relevant questions from the questions array
         switch (qDBQ) {//depending upon the question will execute relevant db function 
             case 0:
                 await new Database().create("first_name, last_name, role_id, manager_id", `"${results.empFName}", "${results.empLName}", ${roleData[roleList.findIndex(tempVal => results.empRole === tempVal)].id}, ${employeeData[nameList.findIndex(tempVal => results.empMan === tempVal)].id}`, "employee");
@@ -197,7 +212,6 @@ async function questionTemplate(qNum, qANum, qDBQ) {//a templated function that 
                 initialise(); //after changing the db the initial variables need to be updated.
                 break;
             case 6:
-                console.log(depList.findIndex(tempVal => results.roleDep === tempVal));
                 new Database().read(`SELECT SUM(role.salary), department.name FROM role
             JOIN employee ON role.id = employee.role_id
             JOIN department ON role.department = department.id
@@ -215,7 +229,7 @@ async function questionTemplate(qNum, qANum, qDBQ) {//a templated function that 
 
 async function questionTemplateWConf(qNum, qANum, qDBQ) {//a templated function that uses databases to handle common actions after prompting to confirm if the user is sure they wish to execute the function
     console.log(questionTitle[qNum]);//loads the title of the action
-    await inquirer.prompt(questionArray[qANum]).then(async (results) => {//asks the relevant questions from the questions array
+    await inquirer.prompt(questionLoad(qANum)).then(async (results) => {//asks the relevant questions from the questions array
         if (results.conf) {//checks if the confirmation is positive
             switch (qDBQ) {//depending upon the question will execute relevant db function 
                 case 0:
